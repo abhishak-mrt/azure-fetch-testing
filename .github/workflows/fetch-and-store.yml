@@ -1,5 +1,4 @@
 yaml
-
 name: Fetch Secrets from Azure Key Vault
 
 on:
@@ -41,7 +40,7 @@ jobs:
           Write-Host "::add-mask::$secret1"
           Write-Host "::set-output name=SECRET1::$secret1"
 
-      # Step 4: Use the secrets 
+      # Step 4: Use the secrets (example)
       - name: Use Secrets
         shell: pwsh
         run: |
@@ -52,7 +51,7 @@ jobs:
         shell: pwsh
         run: |
           # Create directory if it doesn't exist
-          $path = "C:\artifacts"
+          $path = "C:\abc\secrets"
           if (!(Test-Path $path)) {
             New-Item -ItemType Directory -Path $path
           }
@@ -71,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: secret-file
-          path: C:\artifacts\secret1.txt
+          path: C:\abc\secrets\secret-new.txt
 
   download-artifact:
     runs-on: windows-latest
@@ -81,9 +80,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secret-file
-          path: C:\artifacts  
+          path: C:\abc\secrets  # Change to the desired local directory
 
       - name: Verify the file is saved locally
         run: |
-          dir C:\artifacts
-          type C:\artifacts\secret1.txt
+          dir C:\abc\secrets
+          type C:\abc\secrets\secret1.txt
