@@ -1,0 +1,89 @@
+name: Fetch Secrets from Azure Key Vault
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  fetch-secrets:
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Check out the repository (optional)
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Log in to Azure
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
+
+      # Step 3: Fetch Secrets from Azure Key Vault using Azure CLI
+      - name: Fetch Secrets using Azure CLI
+        shell: pwsh
+        run: |
+          # Fetch secrets from Azure Key Vault and store them in environment variables
+          $secret1 = az keyvault secret show --vault-name ${{ secrets.AZURE_KEY_VAULT }} --name "SECRET1" --query value -o tsv
+         
+          # Export the secrets as environment variables for later steps
+          Write-Host "::add-mask::$secret1"
+         
+          Write-Host "::set-output name=SECRET1::$secret1"
+          
+
+      # Step 4: Use the secrets (example)
+      - name: Use Secrets
+        shell: pwsh
+        run: |
+          Write-Host "Fetched SECRET1: ${{ steps.fetch-secrets.outputs.SECRET1 }}"
+          
+      # Step 5: Store to local directory
+      - name: Save Secret Locally
+        shell: pwsh
+        run: |
+          # Create directory if it doesn't exist
+          $path = "C:\abc\secrets"
+          if (!(Test-Path $path)) {
+            New-Item -ItemType Directory -Path $path
+          }
+
+          # Fetch the secret
+          $secret1 = az keyvault secret show --vault-name ${{ secrets.AZURE_KEY_VAULT }} --name "SECRET1" --query value -o tsv
+
+          # Save secret to a file
+          $secret1 | Out-File -FilePath "$path\secret1.txt" -Encoding utf8
+         
+          # Verify the file was created
+          Get-Content "$path\secret1.txt"
+
+      # Step 6: Upload the secret file as an artifact
+      - name: Upload Secret File
+        uses: actions/upload-artifact@v4
+        with:
+          name: secret-file
+          path: C:\abc\secrets\secret1.txt
+
+                  download-artifact:
+                   runs-on: windows-latest
+        needs: upload-artifact  # Ensures the artifact is available before downloading
+        steps:
+         - name: Download artifact
+           uses: actions/download-artifact@v4
+           with:
+            name: secret-file
+            path: C:\abc\secrets  # Change to the desired local directory
+
+         - name: Verify the file is saved locally
+           run: |
+             dir C:\abc\secrets
+             type C:\abc\secrets\secret1.txt
