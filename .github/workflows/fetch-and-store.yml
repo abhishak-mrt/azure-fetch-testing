@@ -1,3 +1,5 @@
+yaml
+
 name: Fetch Secrets from Azure Key Vault
 
 on:
@@ -37,22 +39,20 @@ jobs:
          
           # Export the secrets as environment variables for later steps
           Write-Host "::add-mask::$secret1"
-         
           Write-Host "::set-output name=SECRET1::$secret1"
-          
 
-      # Step 4: Use the secrets (example)
+      # Step 4: Use the secrets 
       - name: Use Secrets
         shell: pwsh
         run: |
           Write-Host "Fetched SECRET1: ${{ steps.fetch-secrets.outputs.SECRET1 }}"
-          
+
       # Step 5: Store to local directory
       - name: Save Secret Locally
         shell: pwsh
         run: |
           # Create directory if it doesn't exist
-          $path = "C:\abc\secrets"
+          $path = "C:\artifacts"
           if (!(Test-Path $path)) {
             New-Item -ItemType Directory -Path $path
           }
@@ -71,19 +71,19 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: secret-file
-          path: C:\abc\secrets\secret1.txt
+          path: C:\artifacts\secret1.txt
 
-                  download-artifact:
-                   runs-on: windows-latest
-        needs: upload-artifact  # Ensures the artifact is available before downloading
-        steps:
-         - name: Download artifact
-           uses: actions/download-artifact@v4
-           with:
-            name: secret-file
-            path: C:\abc\secrets  # Change to the desired local directory
+  download-artifact:
+    runs-on: windows-latest
+    needs: fetch-secrets  # Ensures the artifact is available before downloading
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: secret-file
+          path: C:\artifacts  
 
-         - name: Verify the file is saved locally
-           run: |
-             dir C:\abc\secrets
-             type C:\abc\secrets\secret1.txt
+      - name: Verify the file is saved locally
+        run: |
+          dir C:\artifacts
+          type C:\artifacts\secret1.txt
